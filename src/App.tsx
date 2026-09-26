@@ -3,11 +3,13 @@ import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PhysicalPosition } from "@tauri-apps/api/dpi";
+import { PluginPanel } from "./components/PluginPanel";
 import "./App.css";
 
 function App() {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
+  const [showPluginPanel, setShowPluginPanel] = useState(false);
 
   // 长按相关状态
   const isLongPress = useRef(false);
@@ -148,6 +150,41 @@ function App() {
         <button type="submit">Greet</button>
       </form>
       <p>{greetMsg}</p>
+
+      {/* 插件面板切换按钮 */}
+      <button
+        onClick={() => setShowPluginPanel(!showPluginPanel)}
+        style={{
+          position: "fixed",
+          bottom: "20px",
+          right: "20px",
+          padding: "12px 20px",
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          color: "white",
+          border: "none",
+          borderRadius: "50px",
+          cursor: "pointer",
+          fontSize: "14px",
+          boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
+          zIndex: 1000,
+        }}
+      >
+        🧩 插件
+      </button>
+
+      {/* 插件面板 */}
+      {showPluginPanel && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "80px",
+            right: "20px",
+            zIndex: 999,
+          }}
+        >
+          <PluginPanel />
+        </div>
+      )}
     </main>
   );
 }
