@@ -34,11 +34,17 @@ html, body, #root {
 
 .container {
   margin: 0;
-  padding-top: 10vh;
+  padding: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   text-align: center;
+  width: 100vw;
+  height: 100vh;
+  border: none;
+  outline: none;
+  overflow: hidden;
 }
 
 .logo {
