@@ -29,4 +29,12 @@ export default defineConfig(() => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+
+  // 配置静态资源处理
+  assetsInclude: ["**/*.atlas", "**/*.skel"],
+
+  // 优化依赖
+  optimizeDeps: {
+    include: ["@esotericsoftware/spine-webgl"],
+  },
 }));
