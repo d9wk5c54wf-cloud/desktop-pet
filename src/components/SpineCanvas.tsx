@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import * as PIXI from "pixi.js";
 import { Spine, SkeletonBinary, AtlasAttachmentLoader } from "@pixi-spine/runtime-3.8";
 import { TextureAtlas } from "@pixi-spine/base";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { useSpineAnimation } from "../hooks/useSpineAnimation";
 
 interface SpineCanvasProps {
@@ -296,6 +298,102 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
       }
     };
   }, [assetPath, defaultAnimation, loop, canvasSize]);
+
+  // 随机移动定时器：每10-15秒随机左右走动
+  useEffect(() => {
+    const spine = spineRef.current;
+    if (!spine) return;
+
+    let walkTimer: ReturnType<typeof setTimeout> | null = null;
+    let isWalking = false;
+
+    const baseScaleX = Math.abs(spine.scale.x); 
+    let currentDirection = 1; // 1=右，-1=左，初始向右
+
+    // 应用当前朝向
+    const applyDirection = () => {
+      if (spineRef.current) {
+        spineRef.current.scale.x = baseScaleX * currentDirection;
+      }
+    };
+
+    const doWalk = async () => {
+      if (isWalking || !spineRef.current) return;
+      isWalking = true;
+
+      try {
+        const win = getCurrentWindow();
+        const startPos = await win.outerPosition();
+
+        // 随机落脚点：水平±500px，垂直±100px
+        const destX = startPos.x + Math.round((Math.random() - 0.5) * 1000);
+        const destY = startPos.y + Math.round((Math.random() - 0.5) * 200);
+
+        // 更新朝向
+        currentDirection = destX >= startPos.x ? 1 : -1;
+        applyDirection();
+
+        // 播放走路动画
+        spineRef.current.state.clearListeners();
+        spineRef.current.state.setAnimation(0, "walk", true);
+
+        // 计算距离和时间，匀速移动
+        const dx = destX - startPos.x;
+        const dy = destY - startPos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const speed = 80; // px/秒
+        const duration = Math.max(500, (distance / speed) * 1000); // 至少500ms
+
+        // 匀速动画
+        const startTime = performance.now();
+        await new Promise<void>((resolve) => {
+          const animate = async (now: number) => {
+            if (!isWalking || !spineRef.current) {
+              resolve();
+              return;
+            }
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            const curX = Math.round(startPos.x + dx * progress);
+            const curY = Math.round(startPos.y + dy * progress);
+            await win.setPosition(new PhysicalPosition(curX, curY));
+
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              resolve();
+            }
+          };
+          requestAnimationFrame(animate);
+        });
+      } catch (e) {
+        console.error("随机移动失败:", e);
+      }
+
+      // 走路结束，保持当前朝向，恢复待机动画
+      if (spineRef.current && isWalking) {
+        applyDirection(); // 确保朝向不变
+        spineRef.current.state.clearListeners();
+        spineRef.current.state.setAnimation(0, "stand2", true);
+      }
+      isWalking = false;
+    };
+
+    const scheduleNext = () => {
+      const delay = 10000 + Math.random() * 5000; // 10-15秒
+      walkTimer = setTimeout(() => {
+        doWalk().finally(scheduleNext);
+      }, delay);
+    };
+
+    scheduleNext();
+
+    return () => {
+      isWalking = false;
+      if (walkTimer) clearTimeout(walkTimer);
+    };
+  }, [spineRef.current]);
 
   return (
     <div
