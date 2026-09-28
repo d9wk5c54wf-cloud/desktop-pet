@@ -17,11 +17,15 @@ interface MenuItemConfig {
  *
  * @param animations 动画列表
  * @param playAnimation 播放动画的函数，参数为动画名称和是否循环
+ * @param isPassthrough 当前鼠标穿透状态
+ * @param togglePassthrough 切换鼠标穿透的回调
  * @returns 菜单项配置数组
  */
 export function getMenuConfig(
   animations: string[],
-  playAnimation?: (name: string, loop: boolean) => void
+  playAnimation?: (name: string, loop: boolean) => void,
+  isPassthrough?: boolean,
+  togglePassthrough?: () => void
 ): MenuItemConfig[] {
   // 构建动态动画菜单
   const animationSubmenu: MenuItemConfig[] = animations.map((anim) => ({
@@ -140,6 +144,11 @@ export function getMenuConfig(
               },
             },
           ],
+        },
+        {
+          id: "setting-passthrough",
+          text: isPassthrough ? "鼠标穿透✓ " : "鼠标穿透",
+          action: () => togglePassthrough?.(),
         },
       ],
     },

@@ -15,7 +15,7 @@ interface SpineCanvasProps {
   width?: number;
   /** 高度（可选，不传则自适应容器） */
   height?: number;
-  /** 动画加载完成回调，返回可用动画列表和切换方法 */
+    /** 动画加载完成回调，返回可用动画列表和切换方法 */
   onAnimationsLoaded?: (animations: string[], playAnimation: (name: string, loop: boolean) => void) => void;
   /** 动画大小加载完成回调 */
   onSizeLoaded?: (width: number, height: number) => void;
@@ -30,7 +30,7 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
   onAnimationsLoaded,
   onSizeLoaded,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const appRef = useRef<PIXI.Application | null>(null);
@@ -162,8 +162,6 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
 
         if (destroyed) return;
 
-        console.log("纹理加载成功");
-
         // 创建纹理图集
         const atlas = new TextureAtlas(
           atlasText,
@@ -193,18 +191,20 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
         const spine = new Spine(skeletonData);
         spineRef.current = spine;
 
-        // 自适应缩放：让动画适应画布大小
+        
         const bounds = spine.getBounds();
         if (bounds.width > 0 && bounds.height > 0) {
-          const scaleX = width / bounds.width;
-          const scaleY = height / bounds.height;
+          // 动画填满窗口，留少量边距（10%）
+          const PADDING = 0.9;
+          const scaleX = (width * PADDING) / bounds.width;
+          const scaleY = (height * PADDING) / bounds.height;
           const scale = Math.min(scaleX, scaleY);
           spine.scale.set(scale);
 
           // 重新计算缩放后的边界
           const scaledBounds = spine.getBounds();
 
-          // 将动画居中显示，确保完整可见
+          // 水平居中，垂直居中
           spine.x = (width - scaledBounds.width) / 2 - scaledBounds.x;
           spine.y = (height - scaledBounds.height) / 2 - scaledBounds.y;
 
@@ -215,6 +215,7 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
               Math.ceil(scaledBounds.height)
             );
           }
+
         } else {
           // 默认居中
           spine.x = width / 2;
@@ -227,13 +228,15 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
         // 注册全局动画播放函数
         registerPlayFunction((name: string, loopAnim: boolean, onComplete?: () => void) => {
           if (spineRef.current) {
+            // 清除旧监听器，防止累积
+            spineRef.current.state.clearListeners();
+
             const trackEntry = spineRef.current.state.setAnimation(0, name, loopAnim);
 
-            // 如果有完成回调，添加监听器
+            // 非循环动画：添加完成回调
             if (onComplete) {
               spineRef.current.state.addListener({
                 complete: (entry) => {
-                  // 只在当前动画完成时触发
                   if (entry === trackEntry) {
                     onComplete();
                   }

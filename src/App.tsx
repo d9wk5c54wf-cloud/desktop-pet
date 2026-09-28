@@ -1,6 +1,8 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PhysicalPosition } from "@tauri-apps/api/dpi";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useLongPress } from "./hooks/useLongPress";
 import { useNativeMenu } from "./hooks/useNativeMenu";
 import { useSpineAnimation } from "./hooks/useSpineAnimation";
@@ -11,6 +13,33 @@ import "./App.css";
 function App() {
   // 使用全局动画状态
   const { animations, playAnimation, setDragging } = useSpineAnimation();
+
+  // 鼠标穿透状态
+  const [isPassthrough, setIsPassthrough] = useState(false);
+
+  // 监听 Rust 托盘的穿透状态变化
+  useEffect(() => {
+    const unlisten = listen<boolean>("passthrough-changed", (event) => {
+      setIsPassthrough(event.payload);
+    });
+    return () => { unlisten.then(fn => fn()); };
+  }, []);
+
+  // 初始化时从 Rust 获取当前穿透状态
+  useEffect(() => {
+    invoke<boolean>("get_passthrough").then(setIsPassthrough).catch(() => {});
+  }, []);
+
+  // 切换鼠标穿透（通过 Tauri 命令同步到 Rust）
+  const togglePassthrough = useCallback(async () => {
+    try {
+      const newValue = !isPassthrough;
+      await invoke("set_passthrough", { ignore: newValue });
+      setIsPassthrough(newValue);
+    } catch (e) {
+      console.error("设置鼠标穿透失败:", e);
+    }
+  }, [isPassthrough]);
 
   // 窗口拖拽相关状态
   const dragStartPos = useRef({ x: 0, y: 0 });
@@ -72,7 +101,7 @@ function App() {
     if (animations.length > 0 && animations.includes("touch")) {
       playAnimation("touch", false);
     }
-  }, [playAnimation]);
+  }, [animations, playAnimation]);
 
   // 使用长按 Hook
   const { onMouseDown } = useLongPress({
@@ -97,11 +126,11 @@ function App() {
       e.preventDefault();
 
       // 从 MenuConfig 获取菜单配置
-      const menuItems = getMenuConfig(animations, playAnimation);
+      const menuItems = getMenuConfig(animations, playAnimation, isPassthrough, togglePassthrough);
 
       await showContextMenu(menuItems);
     },
-    [showContextMenu, animations, playAnimation]
+    [showContextMenu, animations, playAnimation, isPassthrough, togglePassthrough]
   );
 
   return (
