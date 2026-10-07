@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as PIXI from "pixi.js";
 import { Spine, SkeletonBinary, AtlasAttachmentLoader } from "@pixi-spine/runtime-3.8";
 import { TextureAtlas } from "@pixi-spine/base";
-import { getCurrentWindow, currentMonitor } from "@tauri-apps/api/window";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { useSpineAnimation } from "../hooks/useSpineAnimation";
 
@@ -324,22 +324,10 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
       try {
         const win = getCurrentWindow();
         const startPos = await win.outerPosition();
-        const winSize = await win.outerSize();
 
-        // 获取屏幕边界
-        const monitor = await currentMonitor();
-        const screenW = monitor?.size.width ?? 1920;
-        const screenH = monitor?.size.height ?? 1080;
-        const screenX = monitor?.position.x ?? 0;
-        const screenY = monitor?.position.y ?? 0;
-
-        // 随机落脚点
-        let destX = startPos.x + Math.round((Math.random() - 0.5) * 1000);
-        let destY = startPos.y + Math.round((Math.random() - 0.5) * 200);
-
-        // 限制在屏幕边界内
-        destX = Math.max(screenX, Math.min(destX, screenX + screenW - winSize.width));
-        destY = Math.max(screenY, Math.min(destY, screenY + screenH - winSize.height));
+        // 随机落脚点：水平±500px，垂直±100px
+        const destX = startPos.x + Math.round((Math.random() - 0.5) * 1000);
+        const destY = startPos.y + Math.round((Math.random() - 0.5) * 200);
 
         // 更新朝向
         currentDirection = destX >= startPos.x ? 1 : -1;
