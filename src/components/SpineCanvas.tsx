@@ -37,6 +37,10 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
   const [error, setError] = useState<string | null>(null);
   const appRef = useRef<PIXI.Application | null>(null);
   const spineRef = useRef<Spine | null>(null);
+  const canvasHeightRef = useRef(0);
+  const baseSpineYRef = useRef(0);
+  const currentAnimRef = useRef("stand2");
+  const stopWalkRef = useRef<(() => void) | null>(null);
 
   // 使用全局动画状态
   const { setAnimations, registerPlayFunction } = useSpineAnimation();
@@ -210,6 +214,10 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
           spine.x = (width - scaledBounds.width) / 2 - scaledBounds.x;
           spine.y = (height - scaledBounds.height) / 2 - scaledBounds.y;
 
+          // 记录基础位置和画布高度，供 sit/sleep 动画偏移使用
+          canvasHeightRef.current = height;
+          baseSpineYRef.current = spine.y;
+
           // 通知外部动画的实际大小（缩放后）
           if (onSizeLoaded) {
             onSizeLoaded(
@@ -230,16 +238,35 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
         // 注册全局动画播放函数
         registerPlayFunction((name: string, loopAnim: boolean, onComplete?: () => void) => {
           if (spineRef.current) {
+            // 非 walk/stand2 动画触发时，中断当前移动
+            if (name !== "walk" && name !== "stand2") {
+              stopWalkRef.current?.();
+            }
+
+            // 记录当前动画
+            currentAnimRef.current = name;
+
             // 清除旧监听器，防止累积
             spineRef.current.state.clearListeners();
 
             const trackEntry = spineRef.current.state.setAnimation(0, name, loopAnim);
+
+            // sit/sleep 动画上移，使角色视觉居中
+            if (name === "sit" || name === "sleep") {
+              spineRef.current.y = baseSpineYRef.current - canvasHeightRef.current * 0.3;
+            } else {
+              spineRef.current.y = baseSpineYRef.current;
+            }
 
             // 非循环动画：添加完成回调
             if (onComplete) {
               spineRef.current.state.addListener({
                 complete: (entry) => {
                   if (entry === trackEntry) {
+                    // 动画结束恢复位置
+                    if (spineRef.current) {
+                      spineRef.current.y = baseSpineYRef.current;
+                    }
                     onComplete();
                   }
                 },
@@ -307,7 +334,7 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
     let walkTimer: ReturnType<typeof setTimeout> | null = null;
     let isWalking = false;
 
-    const baseScaleX = Math.abs(spine.scale.x); 
+    const baseScaleX = Math.abs(spine.scale.x);
     let currentDirection = 1; // 1=右，-1=左，初始向右
 
     // 应用当前朝向
@@ -317,8 +344,25 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
       }
     };
 
+    // 中断移动（供外部调用）
+    const stopWalk = () => {
+      if (isWalking) {
+        isWalking = false;
+        applyDirection(); // 恢复朝向
+        // 恢复待机动画
+        if (spineRef.current) {
+          spineRef.current.state.clearListeners();
+          spineRef.current.state.setAnimation(0, "stand2", true);
+          spineRef.current.y = baseSpineYRef.current;
+        }
+      }
+    };
+    stopWalkRef.current = stopWalk;
+
     const doWalk = async () => {
+      // 只有待机状态才允许自动移动
       if (isWalking || !spineRef.current) return;
+      if (currentAnimRef.current !== "stand2") return;
       isWalking = true;
 
       try {
@@ -403,6 +447,7 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
 
     return () => {
       isWalking = false;
+      stopWalkRef.current = null;
       if (walkTimer) clearTimeout(walkTimer);
     };
   }, [spineRef.current]);
