@@ -2,10 +2,10 @@ import type { PluginContext } from "./PluginContext"
 
 import {
   TauriHttpClient
-} from "../../api/HttpClient"
+} from "../api/HttpClient"
 
-import type { PetAPI } from "../../api/PetAPI"
-import type { MenuAPI } from "../../api/MenuAPI"
+import type { PetAPI } from "../api/PetAPI"
+import type { MenuAPI, MenuItem } from "../api/MenuAPI"
 
 
 export function createPluginContext(): PluginContext {
@@ -13,7 +13,7 @@ export function createPluginContext(): PluginContext {
   const http = new TauriHttpClient()
 
   const pet: PetAPI = {
-    async playAnimation(animation, loop = false) {
+    async playAnimation(animation: string, loop = false) {
 
       console.log(
         "播放动画:",
@@ -25,7 +25,7 @@ export function createPluginContext(): PluginContext {
       // 这里以后连接你的 Spine
     },
 
-    async moveTo(x, y) {
+    async moveTo(x: number, y: number) {
 
       console.log(
         "移动桌宠:",
@@ -40,7 +40,7 @@ export function createPluginContext(): PluginContext {
 
   const menu: MenuAPI = {
 
-    addItem(item) {
+    addItem(item: MenuItem) {
 
       console.log(
         "添加菜单:",
@@ -49,7 +49,7 @@ export function createPluginContext(): PluginContext {
 
     },
 
-    removeItem(id) {
+    removeItem(id: string) {
 
       console.log(
         "删除菜单:",

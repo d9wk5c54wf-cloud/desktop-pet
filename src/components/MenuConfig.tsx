@@ -178,7 +178,7 @@ export function getMenuConfig(
               id: `plugin-${plugin.manifest.id}`,
               text: plugin.manifest.name,
               action: () => {
-                handleLoadPlugin(plugin)
+                handleLoadPlugin?.(plugin)
               },
             }))
           : [{

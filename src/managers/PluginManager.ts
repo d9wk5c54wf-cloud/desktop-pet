@@ -1,7 +1,6 @@
 import { Plugin, PluginManager as IPluginManager } from "../types/plugin";
-import { invoke } from "@tauri-apps/api/core";
 import { appDataDir, join } from "@tauri-apps/api/path";
-import { readTextFile, writeTextFile, exists, mkdir } from "@tauri-apps/plugin-fs";
+import { readTextFile, writeTextFile, exists } from "@tauri-apps/plugin-fs";
 
 export class PluginManager implements IPluginManager {
   private plugins: Map<string, Plugin> = new Map();
@@ -104,7 +103,7 @@ export class PluginManager implements IPluginManager {
   }
 
   private async savePlugins() {
-    const pluginConfigs = Array.from(this.plugins.entries()).map(([id, plugin]) => ({
+    const pluginConfigs = Array.from(this.plugins.entries()).map(([id]) => ({
       id,
       path: `plugins/${id}/index.ts`, // 插件路径
     }));

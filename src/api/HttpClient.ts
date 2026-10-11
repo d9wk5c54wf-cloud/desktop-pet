@@ -42,6 +42,7 @@ export class TauriHttpClient implements HttpClient {
       method: "POST",
       url,
       body,
+      headers: options?.headers,
     })
   }
 }

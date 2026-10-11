@@ -1,3 +1,8 @@
+// 插件组件属性
+export interface PluginComponentProps {
+  config?: Record<string, any>;
+}
+
 // 插件接口定义
 export interface Plugin {
   // 插件唯一标识
@@ -13,7 +18,7 @@ export interface Plugin {
   // 插件图标
   icon?: string;
   // 插件入口组件
-  main: React.ComponentType;
+  main: React.ComponentType<PluginComponentProps>;
   // 插件配置
   config?: Record<string, any>;
   // 生命周期方法
