@@ -41,7 +41,7 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
   const stopWalkRef = useRef<(() => void) | null>(null);
 
   // 使用全局动画状态
-  const { setAnimations, registerPlayFunction } = useSpineAnimation();
+  const { setAnimations, registerPlayFunction, registerStopWalk } = useSpineAnimation();
 
   // 使用容器实际大小，如果没有传入 width/height 则自适应
   const [canvasSize, setCanvasSize] = useState({
@@ -348,6 +348,7 @@ export const SpineCanvas: React.FC<SpineCanvasProps> = ({
       }
     };
     stopWalkRef.current = stopWalk;
+    registerStopWalk(stopWalk);
 
     const doWalk = async () => {
       // 只有待机状态才允许自动移动

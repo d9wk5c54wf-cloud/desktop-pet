@@ -59,6 +59,9 @@ function buildBubbleText(fund, index, total) {
   return `<div>${fund.name}<br/>${change}</div>${pos}`;
 }
 
+// 模块级变量，跨 onLoad 调用保持轮换状态
+let index = 0;
+
 export default {
   async onLoad(context, config) {
     const { http, bubble } = context;
@@ -68,7 +71,6 @@ export default {
 
     // 最新数据，保持与 codes 相同顺序
     let funds = [];
-    let index = 0;
 
     // 拉取所有基金数据
     const refresh = async () => {
@@ -84,12 +86,13 @@ export default {
       }
     };
 
-    // 首次加载：拉取数据并显示第一只
+    // 首次加载：拉取数据并显示当前基金
     await refresh();
 
     if (funds.length > 0) {
-      bubble.show(buildBubbleText(funds[0], 0, funds.length));
-      index = 1 % funds.length;
+      const i = index % funds.length;
+      bubble.show(buildBubbleText(funds[i], i, funds.length));
+      index = (index + 1) % funds.length;
     }
 
     // 定时静默刷新数据

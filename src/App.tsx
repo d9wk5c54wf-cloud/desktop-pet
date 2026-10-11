@@ -14,7 +14,7 @@ import "./App.css";
 
 function App() {
   // 使用全局动画状态
-  const { animations, playAnimation, setDragging } = useSpineAnimation();
+  const { animations, playAnimation, setDragging, stopWalk } = useSpineAnimation();
   
 
   // 监听主窗口移动事件，同步更新气泡窗口位置
@@ -198,12 +198,15 @@ function App() {
     async (e: React.MouseEvent) => {
       e.preventDefault();
 
+      // 菜单打开前停止自动走动，避免菜单关闭后位置跳变
+      stopWalk();
+
       // 从 MenuConfig 获取菜单配置
       const menuItems = getMenuConfig(animations, plugins, playAnimation, isPassthrough, togglePassthrough, handleLoadPlugin, activePluginId, handleSelectClickPlugin);
 
       await showContextMenu(menuItems);
     },
-    [showContextMenu, animations, playAnimation, isPassthrough, togglePassthrough, activePluginId]
+    [showContextMenu, animations, playAnimation, isPassthrough, togglePassthrough, activePluginId, stopWalk]
   );
 
   const bubbleAPI = {

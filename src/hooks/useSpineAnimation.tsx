@@ -15,6 +15,10 @@ interface SpineAnimationContextType {
   getDefaultAnimation: () => string;
   /** 设置拖拽状态（拖拽中时非循环动画完成后不自动回到默认动画） */
   setDragging: (dragging: boolean) => void;
+  /** 注册停止走动函数 */
+  registerStopWalk: (fn: () => void) => void;
+  /** 停止自动走动 */
+  stopWalk: () => void;
 }
 
 const SpineAnimationContext = createContext<SpineAnimationContextType | null>(null);
@@ -27,6 +31,7 @@ export function SpineAnimationProvider({ children }: { children: ReactNode }) {
   const playFunctionRef = useRef<((name: string, loop: boolean, onComplete?: () => void) => void) | null>(null);
   const defaultAnimationRef = useRef<string>("stand2");
   const isDraggingRef = useRef(false);
+  const stopWalkRef = useRef<(() => void) | null>(null);
 
   const registerPlayFunction = useCallback(
     (playFn: (name: string, loop: boolean, onComplete?: () => void) => void) => {
@@ -45,6 +50,14 @@ export function SpineAnimationProvider({ children }: { children: ReactNode }) {
 
   const setDragging = useCallback((dragging: boolean) => {
     isDraggingRef.current = dragging;
+  }, []);
+
+  const registerStopWalk = useCallback((fn: () => void) => {
+    stopWalkRef.current = fn;
+  }, []);
+
+  const stopWalk = useCallback(() => {
+    stopWalkRef.current?.();
   }, []);
 
   const playAnimation = useCallback(
@@ -84,6 +97,8 @@ export function SpineAnimationProvider({ children }: { children: ReactNode }) {
         setDefaultAnimation,
         getDefaultAnimation,
         setDragging,
+        registerStopWalk,
+        stopWalk,
       }}
     >
       {children}
