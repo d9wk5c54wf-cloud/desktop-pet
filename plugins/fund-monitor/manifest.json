@@ -1,0 +1,13 @@
+{
+  "id": "fund-monitor",
+  "name": "基金涨跌监控",
+  "version": "1.0.0",
+  "description": "获取自选基金实时涨跌幅信息",
+  "author": "milude77",
+  "main": "main.js",
+  "config": {
+    "funds": ["159326"],
+    "refreshInterval": 60000,
+    "rotateInterval": 5000
+  }
+}

@@ -86,13 +86,51 @@ fn update_bubble_position(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// 插件通用 HTTP 请求命令
+#[tauri::command]
+async fn http_request(
+    method: String,
+    url: String,
+    body: Option<serde_json::Value>,
+    headers: Option<std::collections::HashMap<String, String>>,
+) -> Result<String, String> {
+    let client = reqwest::Client::new();
+
+    let mut req = match method.to_uppercase().as_str() {
+        "GET" => client.get(&url),
+        "POST" => {
+            let mut r = client.post(&url);
+            if let Some(b) = body {
+                r = r.json(&b);
+            }
+            r
+        }
+        _ => return Err(format!("不支持的 HTTP 方法: {}", method)),
+    };
+
+    // 设置默认请求头
+    req = req.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+
+    // 合并自定义请求头
+    if let Some(hdrs) = headers {
+        for (k, v) in hdrs {
+            req = req.header(&k, &v);
+        }
+    }
+
+    let resp = req.send().await.map_err(|e| e.to_string())?;
+    let text = resp.text().await.map_err(|e| e.to_string())?;
+
+    Ok(text)
+}
+
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![set_passthrough, get_passthrough, discover_plugins, read_plugin_file, show_bubble, hide_bubble, update_bubble_position])
+        .invoke_handler(tauri::generate_handler![set_passthrough, get_passthrough, discover_plugins, read_plugin_file, show_bubble, hide_bubble, update_bubble_position, http_request])
         .setup(|app| {
             // 创建托盘菜单
             let toggle_show = MenuItem::with_id(app, "toggle-show", "显示/隐藏桌宠", true, None::<&str>)?;
@@ -159,6 +197,12 @@ pub fn run() {
 
             // 气泡窗口鼠标穿透
             let _ = bubble_win.set_ignore_cursor_events(true);
+
+            // debug 模式自动打开 DevTools
+            #[cfg(debug_assertions)]
+            if let Some(main_win) = app.get_webview_window("main") {
+                main_win.open_devtools();
+            }
 
             Ok(())
         })

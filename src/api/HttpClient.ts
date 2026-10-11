@@ -28,7 +28,7 @@ export class TauriHttpClient implements HttpClient {
     return await invoke<T>("http_request", {
       method: "GET",
       url,
-      options
+      headers: options?.headers,
     })
   }
 
@@ -42,7 +42,6 @@ export class TauriHttpClient implements HttpClient {
       method: "POST",
       url,
       body,
-      options
     })
   }
 }
