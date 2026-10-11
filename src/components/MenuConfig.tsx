@@ -41,6 +41,8 @@ export function getMenuConfig(
   isPassthrough?: boolean,
   togglePassthrough?: () => void,
   handleLoadPlugin?: (plugin: DiscoveredPlugin) => void,
+  activePluginId?: string | null,
+  onSelectClickPlugin?: (id: string | null) => void,
 ): MenuItemConfig[] {
   // 构建动态动画菜单
   const animationSubmenu: MenuItemConfig[] = animations.map((anim) => ({
@@ -170,23 +172,41 @@ export function getMenuConfig(
     { id: "separator2", separator: true },
     { id: "plugins",
       text:"插件",
-      submenu:
-        plugins.length > 0
+      submenu: [
+        ...(plugins.length > 0
           ? plugins.map((plugin) => ({
               id: `plugin-${plugin.manifest.id}`,
               text: plugin.manifest.name,
-
               action: () => {
                 handleLoadPlugin(plugin)
               },
             }))
-          : [
-              {
-                id: "no-plugin",
-                text: "未检测到插件",
-                enabled: false,
-              },
-            ],
+          : [{
+              id: "no-plugin",
+              text: "未检测到插件",
+              enabled: false,
+            }]),
+        ...(plugins.length > 0
+          ? [{
+              id: "click-plugin",
+              text: "点按触发",
+              submenu: [
+                {
+                  id: "click-plugin-none",
+                  text: activePluginId ? "无" : "无 ✓",
+                  action: () => onSelectClickPlugin?.(null),
+                },
+                ...plugins.map((plugin) => ({
+                  id: `click-plugin-${plugin.manifest.id}`,
+                  text: activePluginId === plugin.manifest.id
+                    ? `${plugin.manifest.name} ✓`
+                    : plugin.manifest.name,
+                  action: () => onSelectClickPlugin?.(plugin.manifest.id),
+                })),
+              ],
+            }]
+          : []),
+      ],
     },
     { id: "separator3", separator: true },
     {

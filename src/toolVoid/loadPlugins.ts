@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core"
+import { TauriHttpClient } from "../api/HttpClient"
 
 export interface BubbleAPI {
   show(text: string): void
@@ -7,6 +8,7 @@ export interface BubbleAPI {
 
 export interface PluginContext {
   bubble: BubbleAPI
+  http: TauriHttpClient
 }
 
 export interface DiscoveredPlugin {
@@ -18,13 +20,17 @@ export interface DiscoveredPlugin {
     author?: string
     description?: string
     main: string
+    config?: Record<string, unknown>
   }
 }
 
+/**
+ * 加载插件并返回插件实例（用于缓存以调用 onTap 等钩子）
+ */
 export async function loadPlugin(
   plugin: DiscoveredPlugin,
   context: PluginContext
-) {
+): Promise<any | null> {
   console.log("准备加载插件：", plugin)
 
   try {
@@ -50,8 +56,14 @@ export async function loadPlugin(
       console.log("插件实例：", pluginInstance)
 
       if (pluginInstance?.onLoad) {
-        await pluginInstance.onLoad(context)
+        const result = await pluginInstance.onLoad(context, plugin.manifest.config ?? {})
+        // 如果 onLoad 返回了对象（包含 onTap 等），用它作为实例
+        if (result && typeof result === "object") {
+          return result
+        }
       }
+
+      return pluginInstance
 
     } finally {
       URL.revokeObjectURL(url)
@@ -59,5 +71,6 @@ export async function loadPlugin(
 
   } catch (error) {
     console.error("插件加载失败：", error)
+    return null
   }
 }

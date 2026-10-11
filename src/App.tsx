@@ -9,6 +9,7 @@ import { useSpineAnimation } from "./hooks/useSpineAnimation";
 import { SpineCanvas } from "./components/SpineCanvas";
 import { getMenuConfig } from "./components/MenuConfig";
 import { loadPlugin } from "./toolVoid/loadPlugins"
+import { TauriHttpClient } from "./api/HttpClient"
 import "./App.css";
 
 function App() {
@@ -30,7 +31,15 @@ function App() {
 
   // 鼠标穿透状态
   const [isPassthrough, setIsPassthrough] = useState(false);
-  const [plugins, setPlugins] = useState([])
+  const [plugins, setPlugins] = useState<any[]>([])
+
+  // 点按插件：用户选中的插件 ID（从 localStorage 恢复）
+  const [activePluginId, setActivePluginId] = useState<string | null>(
+    () => localStorage.getItem("clickPluginId")
+  )
+
+  // 缓存已加载的插件实例及其完整信息
+  const pluginInstancesRef = useRef<Map<string, { instance: any; plugin: any }>>(new Map())
 
   // 监听 Rust 托盘的穿透状态变化
   useEffect(() => {
@@ -58,7 +67,7 @@ function App() {
 
   useEffect(() => {
     async function loadPlugins() {
-      const plugins = await invoke("discover_plugins")
+      const plugins = await invoke<any[]>("discover_plugins")
       setPlugins(plugins)
 
       console.log("插件：", plugins)
@@ -122,12 +131,26 @@ function App() {
     }
   }, [animations, playAnimation, setDragging]);
 
-  // 点按事件（留空，后续使用）
+  // 点按事件：播放 touch 动画 + 触发选中的点按插件
   const handleClick = useCallback(() => {
     if (animations.length > 0 && animations.includes("touch")) {
       playAnimation("touch", false);
     }
-  }, [animations, playAnimation]);
+
+    // 触发点按插件：优先 onTap，没有则回退到 onLoad
+    if (activePluginId) {
+      const cached = pluginInstancesRef.current.get(activePluginId)
+      if (cached?.instance) {
+        const ctx = { bubble: bubbleAPI, http: httpClient }
+        const cfg = cached.plugin?.manifest?.config ?? {}
+        if (cached.instance.onTap) {
+          cached.instance.onTap(ctx, cfg)
+        } else if (cached.instance.onLoad) {
+          cached.instance.onLoad(ctx, cfg)
+        }
+      }
+    }
+  }, [animations, playAnimation, activePluginId]);
 
   // 使用长按 Hook
   const { onMouseDown } = useLongPress({
@@ -141,11 +164,34 @@ function App() {
   // 使用原生菜单
   const { showContextMenu } = useNativeMenu();
 
-  const handleLoadPlugin = (plugin) => {
-    loadPlugin(plugin, {
+  const httpClient = new TauriHttpClient()
+
+  const handleLoadPlugin = async (plugin: any) => {
+    const instance = await loadPlugin(plugin, {
       bubble: bubbleAPI,
+      http: httpClient,
     })
+    if (instance) {
+      pluginInstancesRef.current.set(plugin.manifest.id, { instance, plugin })
+    }
   }
+
+  // 切换点按插件选择，如果插件未加载则自动加载
+  const handleSelectClickPlugin = useCallback(async (id: string | null) => {
+    setActivePluginId(id)
+    if (id) {
+      localStorage.setItem("clickPluginId", id)
+      // 如果插件实例尚未缓存，自动加载
+      if (!pluginInstancesRef.current.has(id)) {
+        const plugin = plugins.find((p: any) => p.manifest.id === id)
+        if (plugin) {
+          await handleLoadPlugin(plugin)
+        }
+      }
+    } else {
+      localStorage.removeItem("clickPluginId")
+    }
+  }, [plugins])
 
   // 右键菜单
   const handleContextMenu = useCallback(
@@ -153,11 +199,11 @@ function App() {
       e.preventDefault();
 
       // 从 MenuConfig 获取菜单配置
-      const menuItems = getMenuConfig(animations, plugins, playAnimation, isPassthrough, togglePassthrough, handleLoadPlugin);
+      const menuItems = getMenuConfig(animations, plugins, playAnimation, isPassthrough, togglePassthrough, handleLoadPlugin, activePluginId, handleSelectClickPlugin);
 
       await showContextMenu(menuItems);
     },
-    [showContextMenu, animations, playAnimation, isPassthrough, togglePassthrough]
+    [showContextMenu, animations, playAnimation, isPassthrough, togglePassthrough, activePluginId]
   );
 
   const bubbleAPI = {

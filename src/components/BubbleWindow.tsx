@@ -60,9 +60,10 @@ export function BubbleWindow() {
   return (
     <div className="bubble-container">
       <div className={`bubble-oval ${fading ? "bubble-fade-out" : ""}`}>
-        <div className="bubble-content">
-          {text}
-        </div>
+        <div
+          className="bubble-content"
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
       </div>
     </div>
   );
