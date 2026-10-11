@@ -6,7 +6,7 @@
   "author": "milude77",
   "main": "main.js",
   "config": {
-    "funds": ["159326"],
+    "funds": ["159326", "519185"],
     "refreshInterval": 60000,
     "rotateInterval": 5000
   }

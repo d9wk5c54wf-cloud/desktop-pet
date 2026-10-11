@@ -79,9 +79,10 @@ export function useLongPress({
 
   }, [handleGlobalMouseMove]);
 
-  // 鼠标按下事件
+  // 鼠标按下事件（仅响应左键）
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
+      if (e.button !== 0) return;
       isMouseDown.current = true;
       isLongPress.current = false;
 
