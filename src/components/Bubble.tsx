@@ -21,15 +21,12 @@ export function Bubble({
       return
     }
 
-    // 每次显示新的气泡时重新开始
     setFading(false)
 
-    // 5 秒后开始淡出
     const fadeTimer = window.setTimeout(() => {
       setFading(true)
     }, duration)
 
-    // 淡出动画完成后真正隐藏
     const hideTimer = window.setTimeout(() => {
       onHide?.()
     }, duration + 800)
@@ -49,6 +46,10 @@ export function Bubble({
       <div className="bubble-text">
         {text}
       </div>
+
+      {/* 思考气泡的小圆点 */}
+      <div className="bubble-dot bubble-dot-large" />
+      <div className="bubble-dot bubble-dot-small" />
     </div>
   )
 }
